@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project is a simple Task Manager application built with a .NET 8 Backend and a React (Vite) Frontend. The goal was to fix existing issues, refactor the design to be cleaner and logic-focused, and implement basic user separation.
+This project is a simple Task Manager application built with a .NET 9 Backend and a React (Vite) Frontend. The goal was to fix existing issues, refactor the design to be cleaner and logic-focused, and implement basic user separation.
 
 ## Implemented Features
 
