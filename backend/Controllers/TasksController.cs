@@ -1,62 +1,63 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
-
 using TaskManager.Models;
-using TaskManager.Data;
+using TaskManager.Services;
+
 namespace TaskManager.API
 {
     [Route("tasks")]
     [ApiController]
     public class TasksController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ITaskService _service;
 
-        public TasksController(ApplicationDbContext context)
+        public TasksController(ITaskService service)
         {
-            _context = context;
+            _service = service;
+        }
+
+        private int GetUserId()
+        {
+            // Extract X-User-Id from header, defaulting to 1 for simulation purposes
+            if (Request.Headers.TryGetValue("X-User-Id", out var userIdVal) && int.TryParse(userIdVal, out int userId))
+            {
+                return userId;
+            }
+            return 1;
         }
 
         [HttpGet]
         public async Task<IActionResult> Get()
         {
-            
-            var tasks = await _context.Tasks.ToListAsync();
+            var userId = GetUserId();
+            var tasks = await _service.GetAllAsync(userId);
             return Ok(tasks);
         }
 
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] TaskItem task)
         {
-            
-            _context.Tasks.Add(task);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(Get), new { id = task.Id }, task);
+            var userId = GetUserId();
+            var created = await _service.CreateAsync(task, userId);
+
+            // Standardizing CreatedAtAction
+            return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
         }
 
-        [HttpPut("{id}")] 
+        [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] TaskItem updated)
         {
-            var task = await _context.Tasks.FindAsync(id);
-            if (task == null) return NotFound();
-
-            task.Title = updated.Title;
-            task.IsDone = updated.IsDone;
-            await _context.SaveChangesAsync();
-
-            return Ok(task);
+            var userId = GetUserId();
+            var result = await _service.UpdateAsync(id, updated, userId);
+            if (result == null) return NotFound();
+            return Ok(result);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var task = await _context.Tasks.FindAsync(id);
-            if (task == null) return NotFound();
-
-            _context.Tasks.Remove(task);
-            await _context.SaveChangesAsync();
-
+            var userId = GetUserId();
+            var success = await _service.DeleteAsync(id, userId);
+            if (!success) return NotFound();
             return NoContent();
         }
     }
